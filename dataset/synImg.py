@@ -17,7 +17,7 @@ synImgsPath = 'synImgs/'
 os.mkdir(synImgsPath) # Create a folder for saving images
 fileBoxLabel = open(synImgsPath+'boxLabel.txt', 'w')
 filePosLabel = open(synImgsPath+'posLabel.txt', 'w')
-numsSynImgs = 1000 # the number of synthetic images
+numsSynImgs = 980 # the number of synthetic images
 maxRobot = 1 # the maximum number of robots (at least one)
 maxRollPitch = math.radians(20) # maximum tilt angles -20~20 degree
 
