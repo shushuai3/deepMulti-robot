@@ -2,3 +2,5 @@ dataset/background/
 .vscode/
 __pycache__/
 *.blend1
+output/
+realImgs

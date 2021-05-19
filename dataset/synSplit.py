@@ -41,11 +41,11 @@ def writeLine(fileObj, attPos, line):
 
 ## Create files
 numImgTrain = round(0.8*len(attPos))
-fileTmp = open('dataset/synImgs/synTrain.txt', 'w')
+fileTmp = open('dataset/synImgs/train.txt', 'w')
 for line in range(0, numImgTrain):
     writeLine(fileTmp, attPos, line)
 fileTmp.close()
-fileTmp = open('dataset/synImgs/synTest.txt', 'w')
+fileTmp = open('dataset/synImgs/test.txt', 'w')
 for line in range(numImgTrain, len(attPos)):
     writeLine(fileTmp, attPos, line)
 fileTmp.close()
