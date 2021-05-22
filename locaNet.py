@@ -45,7 +45,7 @@ def compute_loss(conv, label):
     prob_loss   = label_conf * tf.nn.sigmoid_cross_entropy_with_logits(labels=label_prob, logits=conv_raw_prob)
     depth_loss  = label_conf * tf.pow(pred_d - label_d/1000.0, 2)
 
-    depth_loss  = tf.reduce_sum(tf.reduce_sum(depth_loss, axis=[1,2,3]))
-    conf_loss   = tf.reduce_sum(tf.reduce_sum(conf_loss, axis=[1,2,3]))
+    depth_loss  = tf.reduce_mean(tf.reduce_sum(depth_loss, axis=[1,2,3]))
+    conf_loss   = tf.reduce_mean(tf.reduce_sum(conf_loss, axis=[1,2,3]))
     prob_loss   = tf.reduce_mean(tf.reduce_sum(prob_loss, axis=[1,2,3]))
     return depth_loss, conf_loss, prob_loss

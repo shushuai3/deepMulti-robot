@@ -4,3 +4,7 @@ __pycache__/
 *.blend1
 output/
 realImgs
+aideck-locaNet/BUILD
+aideck-locaNet/BUILD_MODEL_SQ8BIT
+aideck-locaNet/images
+aideck-locaNet/model
