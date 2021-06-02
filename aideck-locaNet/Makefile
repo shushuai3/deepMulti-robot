@@ -11,7 +11,12 @@ endif
 MODEL_PREFIX=model
 AT_INPUT_WIDTH=320
 AT_INPUT_HEIGHT=224
-AT_INPUT_COLORS=1
+AT_INPUT_COLORS=3
+
+# LOAD_QUANTIZATION= #-q #to load a tflite quantized model
+# IMAGE=$(CURDIR)/images/3362_6.pgm
+IMAGE=$(CURDIR)/images/0026.ppm
+io=host
 
 RAM_FLASH_TYPE ?= HYPER
 #PMSIS_OS=freertos

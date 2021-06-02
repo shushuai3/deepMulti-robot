@@ -19,14 +19,13 @@ def locaNet(input_layer):
     conv = common.convolutional(conv, (1, 1, 256, 128)) # 20x14x128
     conv = common.upsample(conv) # 40x28x128
     conv = tf.keras.layers.Concatenate(axis=-1)([conv, route_1]) # 40x28x192
-    conv_point = common.convolutional(conv, (1, 1, 192, 2+NUM_CLASS), activate=False, bn=False) # 40x28x(2 + NUM_CLASS)
+    conv_point = common.convolutional(input_data, (1, 1, 192, 2+NUM_CLASS), activate=False, bn=False) # 40x28x(2 + NUM_CLASS)
     return conv_point
 
 def compute_loss(conv, label):
     conv_shape  = tf.shape(conv)
     batch_size  = conv_shape[0]
     output_size = conv_shape[1:3]
-    input_size  = cfg.LOCA_STRIDE * output_size
     conv = tf.reshape(conv, (batch_size, output_size[0], output_size[1], 2 + NUM_CLASS))
 
     conv_raw_conf = conv[:, :, :, 1:2]
@@ -34,8 +33,7 @@ def compute_loss(conv, label):
 
     pred_d      = tf.exp(conv[:, :, :, 0:1])
     pred_conf   = tf.sigmoid(conv[:, :, :, 1:2])
-   
-    label_xy    = label[:, :, :, 0:2]
+
     label_d     = label[:, :, :, 2:3]
     label_conf  = label[:, :, :, 3:4]
     label_prob  = label[:, :, :, 4:]
