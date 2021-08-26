@@ -8,3 +8,6 @@ aideck-locaNet/BUILD_MODEL_SQ8BIT
 aideck-locaNet/images
 aideck-locaNet/model
 **/BUILD
+dataset/AIdeck_dataset/manual
+dataset/AIdeck_dataset/twinDrone
+dataset/AIdeck_dataset/images

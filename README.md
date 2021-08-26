@@ -16,7 +16,7 @@ This project proposes a locaNet for multi-robot localization by predicting the p
   <img width="400" height="260" src="./plot.png">
 </p> -->
 
-Paper: [PDF on arXiv](abc).
+Paper: [PDF on arXiv](https://arxiv.org/abs/2105.12797).
 
 Video: [Real-world flight on Youtube](abc).
 

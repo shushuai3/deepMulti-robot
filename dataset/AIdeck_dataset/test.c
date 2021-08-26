@@ -7,7 +7,7 @@
     Turn off the drone and fly it.
     Read dataset: make clean all run io=host write=0
 
-    Attention: keep AIdeck cool to initialize the camera
+    Attention: Erase the flash with io=host before logging onboard
  */
 
 #include "pmsis.h"
@@ -40,7 +40,7 @@ static struct pi_device camera;
 static struct pi_device flash;
 
 #define READSIZE 30
-uint32_t flash_address = 0; //300*(BUFF_SIZE+20); // start address in Flash
+uint32_t flash_address = 0; // 300*(BUFF_SIZE+PACKET_SIZE); // start address in Flash
 char image_name[13];
 uint16_t image_number = 0;
 static float previousRoll;
@@ -134,10 +134,12 @@ int test_camera()
     pi_camera_reg_get(&camera, QVGA_WIN_EN, &reg_value);
     printf("qvga window enabled %d\n",reg_value);
     // pi_time_wait_us(1000*5000); // delay 5s for setting logging on cfclient
+    pi_gpio_pin_write(&gpio_device, 2, 0);
 #endif
     while(1)
     {
 #if WRITE_DATASET
+        pi_time_wait_us(10*1000); // 10ms, otherwise the following if cannot be detected
         pi_camera_control(&camera, PI_CAMERA_CMD_START, 0);
         pi_camera_capture(&camera, buff, WIDTH*HEIGHT);
         pi_camera_control(&camera, PI_CAMERA_CMD_STOP, 0);
