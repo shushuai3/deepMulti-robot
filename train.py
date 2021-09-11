@@ -28,15 +28,13 @@ def train_step(image_data, target):
         loss_items = compute_loss(pred_result, target)
         depth_loss  = loss_items[0]
         conf_loss   = loss_items[1]
-        prob_loss   = loss_items[2]
-        total_loss = depth_loss + conf_loss + prob_loss
+        total_loss = depth_loss + conf_loss
 
         gradients = tape.gradient(total_loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         tf.print("STEP %4d   lr: %.6f   depth_loss: %4.2f   conf_loss: %4.2f   "
-                 "prob_loss: %4.2f   total_loss: %4.2f" %(global_steps, optimizer.lr.numpy(),
-                                                          depth_loss, conf_loss,
-                                                          prob_loss, total_loss))
+                 "total_loss: %4.2f" %(global_steps, optimizer.lr.numpy(),
+                 depth_loss, conf_loss, total_loss))
 
         # Change learning rate
         global_steps.assign_add(1)
@@ -54,7 +52,6 @@ def train_step(image_data, target):
             tf.summary.scalar("loss/total_loss", total_loss, step=global_steps)
             tf.summary.scalar("loss/depth_loss", depth_loss, step=global_steps)
             tf.summary.scalar("loss/conf_loss", conf_loss, step=global_steps)
-            tf.summary.scalar("loss/prob_loss", prob_loss, step=global_steps)
         writer.flush()
 
 for epoch in range(cfg.TRAIN_EPOCHS):

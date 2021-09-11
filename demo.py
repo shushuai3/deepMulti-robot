@@ -33,9 +33,10 @@ def image_predict(image_path, model):
     image_data = original_image[np.newaxis, ...].astype(np.float32)
     conv = model.predict(image_data)
     conf = tf.sigmoid(conv[0, :, :, 1:2])
-    # for i in range(28):
-    #     print(np.round(np.array(conv[0, i, :, 0:1]).T, 0))
-    pos_conf_above_threshold = np.argwhere(conf > 0.3)
+    np.set_printoptions(linewidth=np.inf)
+    for i in range(28):
+        print(np.round(np.array(conv[0, i, :, 1]).T))
+    pos_conf_above_threshold = np.argwhere(conf > 0.33)
     image = Image.open(image_path)
     draw = ImageDraw.Draw(image)
     font = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeMono.ttf", 26, encoding="unic")

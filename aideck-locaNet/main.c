@@ -26,7 +26,7 @@
 
 /* Defines */
 // #define NUM_CLASSES 	1001
-#define AT_OUTPUT_SIZE  3360
+#define AT_OUTPUT_SIZE  2240
 #define AT_INPUT_SIZE 	(AT_INPUT_WIDTH*AT_INPUT_HEIGHT*AT_INPUT_COLORS)
 
 #define __XSTR(__s) __STR(__s)
@@ -209,54 +209,36 @@ int body(void)
 	int outclass, MaxPrediction = 0;
 
     static signed char max = -100;
-    static char x40, y40, x28, y28;
-    for(int i=0; i<40; i++){
-        for(int j=0; j<28; j++){
-            printf("%d ",ResOut[(i*28+j)]);
-            if(max < ResOut[(i*28+j)]){
-                max = ResOut[(i*28+j)];
-                x40 = i;
-                y40 = j;
-                y28 = (i*28+j)%40;
-                x28 = ((i*28+j)-y28)/40;
+    static char max_index_x = -100;
+    static char max_index_y = -100;
+    for(int i=0; i<28; i++){
+        for(int j=0; j<40; j++){
+            printf("%d ",ResOut[(i*40+j)]);
+            if(max < ResOut[(i*40+j)]){
+                max = ResOut[(i*40+j)];
+                max_index_x = i;
+                max_index_y = j;
             }
         }
         printf("\n");
     }
-    printf("The largest value: %d \n",max);
-    printf("Index: %d %d or %d %d \n",x40, y40, x28, y28);
+    printf("The largest value: %3d Index H: %3d W: %3d\n",max, max_index_x, max_index_y);
 
-    for(int i=0; i<40; i++){
-        for(int j=0; j<28; j++){
-            printf("%d ",ResOut[1120+(i*28+j)]);
-            if(max < ResOut[1120+(i*28+j)]){
-                max = ResOut[1120+(i*28+j)];
-                x40 = i;
-                y40 = j;
-                y28 = (i*28+j)%40;
-                x28 = ((i*28+j)-y28)/40;
+    max = -100;
+    max_index_x = -100;
+    max_index_y = -100;
+    for(int i=0; i<28; i++){
+        for(int j=0; j<40; j++){
+            printf("%d ",ResOut[1120+(i*40+j)]);
+            if(max < ResOut[1120+(i*40+j)]){
+                max = ResOut[1120+(i*40+j)];
+                max_index_x = i;
+                max_index_y = j;
             }
         }
         printf("\n");
     }
-    printf("The largest value: %d \n",max);
-    printf("Index: %d %d or %d %d \n",x40, y40, x28, y28);
-
-    for(int i=0; i<40; i++){
-        for(int j=0; j<28; j++){
-            printf("%d ",ResOut[2240+(i*28+j)]);
-            if(max < ResOut[2240+(i*28+j)]){
-                max = ResOut[2240+(i*28+j)];
-                x40 = i;
-                y40 = j;
-                y28 = (i*28+j)%40;
-                x28 = ((i*28+j)-y28)/40;
-            }
-        }
-        printf("\n");
-    }
-    printf("The largest value: %d \n",max);
-    printf("Index: %d %d or %d %d \n",x40, y40, x28, y28);
+    printf("The largest value: %3d Index H: %3d W: %3d\n",max, max_index_x, max_index_y);
 
     printf("Model:\t%s\n\n", __XSTR(AT_MODEL_PREFIX));
 	printf("Predicted class:\t%d\n", outclass);
