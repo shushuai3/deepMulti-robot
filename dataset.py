@@ -1,16 +1,15 @@
 import os
 import cv2
-import random
 import numpy as np
 import tensorflow as tf
 import config as cfg
 
 class Dataset(object):
 
-    def __init__(self, dataset_type):
-        self.annot_path  = cfg.TRAIN_ANNOT_PATH if dataset_type == 'train' else cfg_TEST.ANNOT_PATH
-        self.input_size  = cfg.TRAIN_INPUT_SIZE if dataset_type == 'train' else cfg_TEST.INPUT_SIZE
-        self.batch_size  = cfg.TRAIN_BATCH_SIZE if dataset_type == 'train' else cfg_TEST.BATCH_SIZE
+    def __init__(self):
+        self.annot_path  = cfg.TRAIN_ANNOT_PATH
+        self.input_size  = cfg.TRAIN_INPUT_SIZE
+        self.batch_size  = cfg.TRAIN_BATCH_SIZE
 
         self.stride = cfg.LOCA_STRIDE
         self.classes = cfg.LOCA_CLASSES
@@ -62,20 +61,22 @@ class Dataset(object):
         image_path = line[0]
         if not os.path.exists(image_path):
             raise KeyError("%s does not exist ... " %image_path)
-        if cfg.DATASET_FOLDER == 'synImgs':
+        if cfg.INPUT_CHANNEL == 3:
             image = cv2.imread(image_path)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         else:
             image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
             image = image[..., np.newaxis]
-        image = np.swapaxes(np.copy(image),0,1)
+        image = image.astype('float32')
+        image = image/128.0 - 1.0
         points = np.array([list(map(int, point.split(','))) for point in line[2:3]])
         return image, points
 
     def preprocess_true_points(self, points):
         label = np.zeros((self.output_size[0], self.output_size[1], 4+self.num_classes))
         for point in points:
-            point_xy    = point[:2]
+            # note that label dimension is 320x224, therefore swap axes as follows
+            point_xy    = np.array([point[1], point[0]])
             point_depth = point[2]
             point_class = point[3]
 

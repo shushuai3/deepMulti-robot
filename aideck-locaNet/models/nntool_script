@@ -1,0 +1,46 @@
+# Explanation: https://greenwaves-technologies.com/sdk-manuals/nn_quick_start_guide/
+
+# To get more info on any function open nntool
+# Type 'nntool' in terminal after you sourced your GAP_SDK config
+# Then type 'help fn_name', e.g. 'help aquant'
+
+# Show more information
+# set debug true
+
+# Display the structure of the graph
+# show
+
+# Adjust activation and parameter tensors to match AutoTiler order.
+# Must be run before generating code.
+adjust
+
+# Carry out the default set of fusions on the graph, --scale8 or --pow2
+fusions --scale8
+# set input_norm_func "x: x-128"
+set input_norm_func 'x: x/128-1'
+
+# Options: [-h] [-q QSNR | -f {8, 16, 32}] [-s {SQ8, POW2}]
+# aquant imgquant/* -s SQ8
+aquant imgquant/* -s SQ8
+qshow
+
+# [bw8 | bw16 | rgb888 | rgb565_rgb888 | rgb16] [shift_int8 | offset_int8 | out_int16]
+set input_norm_func 'x: x'
+imageformat input_1 rgb888 offset_int8
+
+# nodeoption 0 ALLOCATE 1
+# nodeoption CONV_2D_0_0_fusion PARALLELFEATURES
+#nodeoption DEPTHWISE_CONV_2D_0_1_fusion PARALLELFEATURES 0
+#nodeoption DEPTHWISE_CONV_2D_0_3_fusion PARALLELFEATURES 0
+# set graph_noinline_node true
+
+set l3_ram_ext_managed true
+set default_input_exec_location "AT_MEM_L3_HRAM"
+set graph_produce_node_names true
+set graph_reorder_constant_in false
+set graph_produce_operinfos true
+set graph_monitor_cycles true
+set graph_const_exec_from_flash true
+set graph_dump_tensor 0
+set graph_trace_exec true
+save_state

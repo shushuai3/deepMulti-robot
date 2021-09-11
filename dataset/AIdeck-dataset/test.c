@@ -18,6 +18,7 @@
 // #include "img_proc.h"
 #include "bsp/flash.h"
 #include "bsp/flash/hyperflash.h"
+#include "img_proc.h"
 
 #define WIDTH    324
 #define HEIGHT   244
@@ -30,6 +31,7 @@ PI_L2 unsigned char value;
 #define PACKET_SIZE 24
 static PI_L2 unsigned char buff_uart_rcv[UART_RCV_SIZE];
 static PI_L2 unsigned char buff_packet[PACKET_SIZE];
+static PI_L2 unsigned char buff_packet_tmp[PACKET_SIZE];
 
 // For async Uart read
 struct pi_device uart;
@@ -39,12 +41,13 @@ void uart_rx_cb(void *arg);
 static struct pi_device camera;
 static struct pi_device flash;
 
-#define READSIZE 30
+#define READSIZE 1600
 uint32_t flash_address = 0; // 300*(BUFF_SIZE+PACKET_SIZE); // start address in Flash
 char image_name[13];
 uint16_t image_number = 0;
 static float previousRoll;
 float roll, pitch, pos_x, pos_y, pos_z, pos_d;
+static bool start_storing = false;
 
 static float decode_packet(uint8_t *src, float * r, float * p, float * x, float * y, float * z, float * d);
 static float buff_strip(uint8_t *src, uint8_t *tar);
@@ -54,7 +57,7 @@ int test_camera()
     printf("Entering main controller\n");
     // ------ open led
     static struct pi_device gpio_device;
-    pi_pad_set_function(PI_PAD_14_A2_RF_PACTRL2, PI_PAD_14_A2_GPIO_A2_FUNC1);
+    // pi_pad_set_function(PI_PAD_14_A2_RF_PACTRL2, PI_PAD_14_A2_GPIO_A2_FUNC1);
     pi_gpio_pin_configure(&gpio_device, 2, PI_GPIO_OUTPUT);
     static int led_val = 1;
     pi_gpio_pin_write(&gpio_device, 2, led_val);
@@ -67,7 +70,7 @@ int test_camera()
     printf("Initialized buffers\n");
 
     // ------ open flash
-    pi_pad_set_function(PI_PAD_46_B7_SPIM0_SCK, PI_PAD_46_B7_HYPER_DQ6_FUNC3);
+    // pi_pad_set_function(PI_PAD_46_B7_SPIM0_SCK, PI_PAD_46_B7_HYPER_DQ6_FUNC3);
     static struct pi_hyperflash_conf flash_conf;
     pi_hyperflash_conf_init(&flash_conf);
     pi_open_from_conf(&flash, &flash_conf);
@@ -143,6 +146,8 @@ int test_camera()
         pi_camera_control(&camera, PI_CAMERA_CMD_START, 0);
         pi_camera_capture(&camera, buff, WIDTH*HEIGHT);
         pi_camera_control(&camera, PI_CAMERA_CMD_STOP, 0);
+        for (int i=0; i<PACKET_SIZE; i++)
+            {buff_packet_tmp[i]=buff_packet[i];}
 
         pi_pad_set_function(PI_PAD_46_B7_SPIM0_SCK, PI_PAD_46_B7_SPIM0_SCK_FUNC0);
         // ----- For ordinary uart read
@@ -153,11 +158,11 @@ int test_camera()
         if(previousRoll != roll){
             led_val ^= 1;
             pi_gpio_pin_write(&gpio_device, 2, led_val);
-            if(image_number > 0){
+            if(start_storing){
                 pi_pad_set_function(PI_PAD_46_B7_SPIM0_SCK, PI_PAD_46_B7_HYPER_DQ6_FUNC3); // HW bug
                 pi_flash_program(&flash, flash_address, buff, (uint32_t) BUFF_SIZE);
                 flash_address += BUFF_SIZE;
-                pi_flash_program(&flash, flash_address, buff_packet, (uint32_t) PACKET_SIZE);
+                pi_flash_program(&flash, flash_address, buff_packet_tmp, (uint32_t) PACKET_SIZE);
                 flash_address += PACKET_SIZE;
                 /* pi_flash_program(&flash, flash_address, buff_demosaick, (uint32_t) BUFF_SIZE3);
                 flash_address += BUFF_SIZE3; */
@@ -266,6 +271,7 @@ void uart_rx_cb(void *arg)
 {
     buff_strip(buff_uart_rcv, buff_packet);
     decode_packet(buff_packet, &roll, &pitch, &pos_x, &pos_y, &pos_z, &pos_d);
+    if(pos_z<-0.2f){ start_storing = true;}
     printf("roll: %2.2f %2.2f\n", roll, pitch);
     pi_uart_read_async(&uart, buff_uart_rcv, UART_RCV_SIZE, pi_task_callback(&taskUart, (void *) uart_rx_cb, NULL));
 }

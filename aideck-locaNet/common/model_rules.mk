@@ -28,7 +28,7 @@ endif
 USE_DISP=1
 
 ifdef USE_DISP
-  SDL_FLAGS= -lSDL2 -lSDL2_ttf
+  SDL_FLAGS= -lSDL2 -lSDL2_ttf -DAT_DISPLAY
 else
   SDL_FLAGS=
 endif
@@ -57,19 +57,18 @@ $(MODEL_TFLITE): $(TRAINED_TFLITE_MODEL) | $(MODEL_BUILD)
 # The commands:
 # 	Adjust the model to match AutoTiler tensor order
 #	Fuse nodes together to match fused AutoTiler generators
-#	Quantize the graph if not already done with tflite quantization
 #	Save the graph state files
 
-$(MODEL_STATE): $(MODEL_TFLITE) $(NNTOOL_SCRIPT) | $(MODEL_BUILD)
+$(MODEL_STATE): $(MODEL_TFLITE) $(IMAGES) $(NNTOOL_SCRIPT) | $(MODEL_BUILD)
 	echo "GENERATING NNTOOL STATE FILE"
-	$(NNTOOL) -s $(NNTOOL_SCRIPT) $< $(NNTOOL_EXTRA_FLAGS)
+	$(NNTOOL) -s $(NNTOOL_SCRIPT) $< $(QUANT_FLAG)
 
 nntool_state: $(MODEL_STATE)
 
 # Runs NNTOOL with its state file to generate the autotiler model code
 $(MODEL_BUILD)/$(MODEL_SRC): $(MODEL_STATE) $(MODEL_TFLITE) | $(MODEL_BUILD)
 	echo "GENERATING AUTOTILER MODEL"
-	$(NNTOOL) -g -M $(MODEL_BUILD) -m $(MODEL_SRC) -T $(TENSORS_DIR) -H $(MODEL_HEADER) $(MODEL_GENFLAGS_EXTRA) $<
+	$(NNTOOL) -g -M $(MODEL_BUILD) -m $(MODEL_SRC) -T $(TENSORS_DIR) $(MODEL_GENFLAGS_EXTRA) $<
 
 nntool_gen: $(MODEL_BUILD)/$(MODEL_SRC)
 
@@ -91,11 +90,8 @@ model: $(MODEL_GEN_C)
 clean_model:
 	$(RM) $(MODEL_GEN_EXE)
 	$(RM) -rf $(MODEL_BUILD)
-	$(RM) $(MODEL_BUILD)/*.dat
 
 clean_train:
-	$(RM) $(MODEL_H5)
-	$(RM) $(TRAINED_TFLITE_MODEL)
 	$(RM) -rf $(MODEL_TRAIN_BUILD)
 
 clean_images:

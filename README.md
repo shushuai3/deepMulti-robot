@@ -5,11 +5,12 @@ This project proposes a locaNet for multi-robot localization by predicting the p
 ## Contents
 
     .
-    ├── locaNet                 # neural network, training, and testing
-    ├── dataset                 # synthetic and real-world flight dataset
-    ├── locaAIdeck              # deep network on the AI edge chip - GAP8
-    ├── crazyflie-firmware      # autopilot code of quadrotors
-    ├── LICENSE
+    ├── aideck-locaNet          # deep network on the AI edge chip - GAP8
+    ├── dataset                 # 
+        ├── AIdeck-dataset      # flight images and relative positions
+        ├── Other files         # synthetic images rendered by Blender
+        
+    ├── Otherfiles      # neural network, training, and testing
     └── README.md
 
 <!-- <p align="center">

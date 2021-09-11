@@ -1,13 +1,20 @@
+# Project: dataset acquisition with AIdeck
+dataset/AIdeck-dataset/imageStorage
+dataset/AIdeck-dataset/images
+dataset/AIdeck-dataset/BUILD
+
+# Project: synthetic dataset from Blender 3D rendering
 dataset/background/
+dataset/images
+dataset/*.blend1
+
+# Project: training of locaNet
 .vscode/
 __pycache__/
-*.blend1
 output/
-realImgs
+
+# Project: onboard running of locaNet on the AIdeck
 aideck-locaNet/BUILD_MODEL_SQ8BIT
-aideck-locaNet/images
+aideck-locaNet/BUILD
 aideck-locaNet/model
-**/BUILD
-dataset/AIdeck_dataset/manual
-dataset/AIdeck_dataset/twinDrone
-dataset/AIdeck_dataset/images
+aideck-locaNet/imgquant
