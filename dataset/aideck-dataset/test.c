@@ -43,7 +43,7 @@ static struct pi_device camera;
 static struct pi_device flash;
 
 #define READSIZE 1600
-uint32_t flash_address = 0; // 300*(BUFF_SIZE+PACKET_SIZE); // start address in Flash
+uint32_t flash_address = 0; // 300*(CROP_SIZE+PACKET_SIZE); // start address in Flash
 char image_name[13];
 uint16_t image_number = 0;
 static float previousRoll;
@@ -124,15 +124,24 @@ int test_camera()
         printf("Failed to open camera\n");
         pmsis_exit(-1);
     }
-    pi_camera_control(&camera, PI_CAMERA_CMD_AEG_INIT, 0);
+    // pi_camera_control(&camera, PI_CAMERA_CMD_AEG_INIT, 0);
     printf("Open Himax camera\n");
     
     // ------ camera rotation and qvga mode
+    pi_camera_control(&camera, PI_CAMERA_CMD_START, 0);
     uint8_t set_value=3;
     uint8_t reg_value;
     pi_camera_reg_set(&camera, IMG_ORIENTATION, &set_value);
+    pi_time_wait_us(1000000);
     pi_camera_reg_get(&camera, IMG_ORIENTATION, &reg_value);
-    printf("img orientation %d\n",reg_value);
+    if (set_value!=reg_value)
+    {
+        printf("Failed to rotate camera image\n");
+        return -1;
+    }
+    pi_camera_control(&camera, PI_CAMERA_CMD_STOP, 0);
+    pi_camera_control(&camera, PI_CAMERA_CMD_AEG_INIT, 0);
+
     set_value=1;
     pi_camera_reg_set(&camera, QVGA_WIN_EN, &set_value);
     pi_camera_reg_get(&camera, QVGA_WIN_EN, &reg_value);
@@ -215,9 +224,9 @@ int test_camera()
             pmsis_exit(0);
         }
         sprintf(image_name, "../../../images/img%05d.ppm", image_number);
-        WriteImageToFile(image_name, 320, 224, sizeof(uint8_t), buff, GRAY_SCALE_IO);
-        // demosaicking(buff, buff_demosaick, WIDTH, HEIGHT, 0);
-        // WriteImageToFile(image_name, WIDTH, HEIGHT, sizeof(uint32_t), buff_demosaick, RGB888_IO);
+        // WriteImageToFile(image_name, 320, 224, sizeof(uint8_t), buff, GRAY_SCALE_IO);
+        demosaicking(buff, buff_demosaick, 320, 224, 0);
+        WriteImageToFile(image_name, 320, 224, sizeof(uint32_t), buff_demosaick, RGB888_IO);
         pi_flash_read(&flash, flash_address, buff_packet, (uint32_t) PACKET_SIZE);
         flash_address += PACKET_SIZE;
         image_number ++;
