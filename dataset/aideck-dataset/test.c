@@ -22,6 +22,7 @@
 
 #define WIDTH    324
 #define HEIGHT   244
+#define CROP_SIZE 71680 // 224x320
 #define BUFF_SIZE (WIDTH*HEIGHT)
 PI_L2 unsigned char *buff;
 PI_L2 unsigned char *buff_demosaick;
@@ -159,9 +160,19 @@ int test_camera()
             led_val ^= 1;
             pi_gpio_pin_write(&gpio_device, 2, led_val);
             if(start_storing){
+                // Crop from 244x324 to 224x320
+                int ps=0;
+                for(int i=0; i<244; i++){
+                    for(int j=0; j<324; j++){
+                        if ( i<234 && i>9 && j<322 && j>1){
+                            buff[ps] = buff[i*324+j];
+                            ps++;        			
+                        }
+                    }
+                } 	
                 pi_pad_set_function(PI_PAD_46_B7_SPIM0_SCK, PI_PAD_46_B7_HYPER_DQ6_FUNC3); // HW bug
-                pi_flash_program(&flash, flash_address, buff, (uint32_t) BUFF_SIZE);
-                flash_address += BUFF_SIZE;
+                pi_flash_program(&flash, flash_address, buff, (uint32_t) CROP_SIZE);
+                flash_address += CROP_SIZE;
                 pi_flash_program(&flash, flash_address, buff_packet_tmp, (uint32_t) PACKET_SIZE);
                 flash_address += PACKET_SIZE;
                 /* pi_flash_program(&flash, flash_address, buff_demosaick, (uint32_t) BUFF_SIZE3);
@@ -172,8 +183,8 @@ int test_camera()
         image_number ++;
 #else
         for (uint32_t i=0; i<BUFF_SIZE; i++){buff[i] = 0;}
-        pi_flash_read(&flash, flash_address, buff, (uint32_t) BUFF_SIZE);
-        flash_address += BUFF_SIZE;
+        pi_flash_read(&flash, flash_address, buff, (uint32_t) CROP_SIZE);
+        flash_address += CROP_SIZE;
         if( ((buff[0]==0xFF) && (buff[1]==0xFF) ) || (image_number > READSIZE) ){
         // if( (buff[0]==0xFF) && (buff[1]==0xFF) ){
             //------ write attitude and 3D pos to a txt file
@@ -186,10 +197,10 @@ int test_camera()
                 return -1;
             void *File = pi_fs_open(&fs, "../../../images/label.txt", PI_FS_FLAGS_WRITE);
             char line_data[100];
-            flash_address = BUFF_SIZE;
+            flash_address = CROP_SIZE;
             for (int i=0; i<image_number; i++){
                 pi_flash_read(&flash, flash_address, buff_packet, (uint32_t) (PACKET_SIZE));
-                flash_address += (BUFF_SIZE+PACKET_SIZE);
+                flash_address += (CROP_SIZE+PACKET_SIZE);
                 decode_packet(buff_packet, &roll, &pitch, &pos_x, &pos_y, &pos_z, &pos_d);
                 sprintf(line_data, "img%05d.ppm %2.2f %2.2f %2.2f %2.2f %2.2f %2.2f\n", i,\
                     roll, pitch, pos_x, pos_y, pos_z, pos_d);
@@ -204,7 +215,7 @@ int test_camera()
             pmsis_exit(0);
         }
         sprintf(image_name, "../../../images/img%05d.ppm", image_number);
-        WriteImageToFile(image_name, WIDTH, HEIGHT, sizeof(uint8_t), buff, GRAY_SCALE_IO);
+        WriteImageToFile(image_name, 320, 224, sizeof(uint8_t), buff, GRAY_SCALE_IO);
         // demosaicking(buff, buff_demosaick, WIDTH, HEIGHT, 0);
         // WriteImageToFile(image_name, WIDTH, HEIGHT, sizeof(uint32_t), buff_demosaick, RGB888_IO);
         pi_flash_read(&flash, flash_address, buff_packet, (uint32_t) PACKET_SIZE);

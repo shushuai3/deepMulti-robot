@@ -1,7 +1,7 @@
 # Project: dataset acquisition with AIdeck
-dataset/AIdeck-dataset/imageStorage
-dataset/AIdeck-dataset/images
-dataset/AIdeck-dataset/BUILD
+dataset/aideck-dataset/imageStorage
+dataset/aideck-dataset/images
+dataset/aideck-dataset/BUILD
 
 # Project: synthetic dataset from Blender 3D rendering
 dataset/background/
