@@ -178,7 +178,13 @@ int test_camera()
                             ps++;        			
                         }
                     }
-                } 	
+                }
+                // Uncomment the following code for sampling the calibration images
+                // sprintf(image_name, "../../../images/img%05d.ppm", image_number);
+                // demosaicking(buff, buff_demosaick, 320, 224, 0);
+                // WriteImageToFile(image_name, 320, 224, sizeof(uint32_t), buff_demosaick, RGB888_IO);
+
+                // Saving real-time flight images and drone states to flash
                 pi_pad_set_function(PI_PAD_46_B7_SPIM0_SCK, PI_PAD_46_B7_HYPER_DQ6_FUNC3); // HW bug
                 pi_flash_program(&flash, flash_address, buff, (uint32_t) CROP_SIZE);
                 flash_address += CROP_SIZE;

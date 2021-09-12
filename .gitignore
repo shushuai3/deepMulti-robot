@@ -2,6 +2,7 @@
 dataset/aideck-dataset/imageStorage
 dataset/aideck-dataset/images
 dataset/aideck-dataset/BUILD
+dataset/aideck-dataset/calibration/*.ppm
 
 # Project: synthetic dataset from Blender 3D rendering
 dataset/background/
