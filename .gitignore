@@ -1,6 +1,5 @@
 # Project: dataset acquisition with AIdeck
 dataset/aideck-dataset/imageStorage
-dataset/aideck-dataset/images
 dataset/aideck-dataset/BUILD
 dataset/aideck-dataset/calibration/*.ppm
 
@@ -18,4 +17,3 @@ output/
 aideck-locaNet/BUILD_MODEL_SQ8BIT
 aideck-locaNet/BUILD
 aideck-locaNet/model
-aideck-locaNet/imgquant

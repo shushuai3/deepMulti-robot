@@ -21,7 +21,7 @@
 #include "bsp/camera/himax.h"
 #include "bsp/ram.h"
 #include "bsp/ram/hyperram.h"
-
+#include "img_proc.h"
 #include "main.h"
 
 /* Defines */
@@ -43,23 +43,12 @@ typedef signed char NETWORK_OUT_TYPE;
 struct pi_device camera;
 static pi_buffer_t buffer;
 struct pi_device HyperRam;
+struct pi_device uart;
+L2_MEM char *uartData;
 
 L2_MEM NETWORK_OUT_TYPE *ResOut;
 static uint32_t l3_buff;
 AT_HYPERFLASH_FS_EXT_ADDR_TYPE AT_L3_ADDR = 0;
-
-#ifdef HAVE_CAMERA
-static int open_camera_himax(struct pi_device *device)
-{
-  struct pi_himax_conf cam_conf;
-
-  pi_himax_conf_init(&cam_conf);
-  pi_open_from_conf(device, &cam_conf);
-  if (pi_camera_open(device))
-    return -1;
-  return 0;
-}
-#endif
 
 static void RunNetwork()
 {
@@ -109,28 +98,46 @@ int body(void)
 		pmsis_exit(1);
 	}
 
-	// Open Camera 
-	if (open_camera_himax(&camera))
-	{
-		printf("Failed to open camera\n");
-		pmsis_exit(-2);
+    uint8_t* Input_3 = (uint8_t*) pmsis_l2_malloc(AT_INPUT_SIZE*sizeof(char));
+	if(!Input_3){
+		printf("Failed allocation!\n");
+		pmsis_exit(1);
 	}
 
-	// Get an image 
+    printf("debug point\n");
+   
+    // ------ open camera
+    struct pi_himax_conf cam_conf;
+    pi_himax_conf_init(&cam_conf);
+    cam_conf.format = PI_CAMERA_QVGA;
+    pi_open_from_conf(&camera, &cam_conf);
+    if (pi_camera_open(&camera))
+    {
+        printf("Failed to open camera\n");
+        pmsis_exit(-1);
+    }
+    // pi_camera_control(&camera, PI_CAMERA_CMD_AEG_INIT, 0);
+    printf("Open Himax camera\n");
+    
+    // ------ camera rotation and qvga mode
     pi_camera_control(&camera, PI_CAMERA_CMD_START, 0);
-    pi_camera_capture(&camera, Input_1, CAMERA_SIZE);
+    uint8_t set_value=3;
+    uint8_t reg_value;
+    pi_camera_reg_set(&camera, IMG_ORIENTATION, &set_value);
+    pi_time_wait_us(1000000);
+    pi_camera_reg_get(&camera, IMG_ORIENTATION, &reg_value);
+    if (set_value!=reg_value)
+    {
+        printf("Failed to rotate camera image\n");
+        return -1;
+    }
     pi_camera_control(&camera, PI_CAMERA_CMD_STOP, 0);
+    pi_camera_control(&camera, PI_CAMERA_CMD_AEG_INIT, 0);
 
-    // Image Cropping to [ AT_INPUT_HEIGHT x AT_INPUT_WIDTH ]
-    int ps=0;
-    for(int i =0;i<CAMERA_HEIGHT;i++){
-    	for(int j=0;j<CAMERA_WIDTH;j++){
-    		if (i<AT_INPUT_HEIGHT && j<AT_INPUT_WIDTH){
-    			Input_1[ps] = Input_1[i*CAMERA_WIDTH+j];
-    			ps++;        			
-    		}
-    	}
-    } 	
+    set_value=1;
+    pi_camera_reg_set(&camera, QVGA_WIN_EN, &set_value);
+    pi_camera_reg_get(&camera, QVGA_WIN_EN, &reg_value);
+    printf("qvga window enabled %d\n",reg_value);
 
 #else
 	// Allocate temp buffer for image data
@@ -154,11 +161,7 @@ int body(void)
 
 	//move input image to L3 Hyperram
 #ifdef HAVE_CAMERA
-	// Copy Single Channel Greyscale to 3 channel RGB: CH0-CH1-CH2 
-	pi_ram_write(&HyperRam, (l3_buff), 									Input_1, (uint32_t) AT_INPUT_WIDTH*AT_INPUT_HEIGHT);
-	pi_ram_write(&HyperRam, (l3_buff+AT_INPUT_WIDTH*AT_INPUT_HEIGHT), 	Input_1, (uint32_t) AT_INPUT_WIDTH*AT_INPUT_HEIGHT);
-	pi_ram_write(&HyperRam, (l3_buff+2*AT_INPUT_WIDTH*AT_INPUT_HEIGHT), Input_1, (uint32_t) AT_INPUT_WIDTH*AT_INPUT_HEIGHT);
-	pmsis_l2_malloc_free(Input_1, CAMERA_SIZE*sizeof(char));
+
 #else
 	// write greyscale image to RAM
 	pi_ram_write(&HyperRam, (l3_buff), Input_1, (uint32_t) AT_INPUT_SIZE);
@@ -192,6 +195,31 @@ int body(void)
 		return 1;
 	}
 
+    uartData = (char *) pmsis_l2_malloc(5*sizeof(char));
+	if (uartData==0) {
+		printf("Failed to allocate Memory for uartData (%ld bytes)\n", 2*sizeof(char));
+		return 1;
+	}
+    uartData[0] = 0xfe;
+    uartData[1] = 0xfe;
+    struct pi_uart_conf uart_conf;
+    /* Init & open uart. */
+    pi_uart_conf_init(&uart_conf);
+    // uart_conf.enable_tx = 1;
+    // uart_conf.enable_rx = 0;
+    uart_conf.baudrate_bps = 115200;
+    pi_open_from_conf(&uart, &uart_conf);
+    if (pi_uart_open(&uart))
+    {
+        printf("Uart open failed !\n");
+        pmsis_exit(-1);
+    }
+    pi_uart_open(&uart);
+
+    static struct pi_device gpio_device;
+    pi_gpio_pin_configure(&gpio_device, 2, PI_GPIO_OUTPUT);
+    static int led_val = 0;
+    pi_gpio_pin_write(&gpio_device, 2, led_val);
 	// Network Constructor
 	// IMPORTANT: MUST BE CALLED AFTER THE CLUSTER IS ON!
 	int err_const = AT_CONSTRUCT();
@@ -202,6 +230,30 @@ int body(void)
 	}
 	printf("Network Constructor was OK!\n");
 
+    while(1){
+	// Get an image 
+    pi_camera_control(&camera, PI_CAMERA_CMD_START, 0);
+    pi_camera_capture(&camera, Input_1, CAMERA_SIZE);
+    pi_camera_control(&camera, PI_CAMERA_CMD_STOP, 0);
+    // Image Cropping to [ AT_INPUT_HEIGHT x AT_INPUT_WIDTH ]
+    int ps=0;
+    for(int i =0;i<CAMERA_HEIGHT;i++){
+    	for(int j=0;j<CAMERA_WIDTH;j++){
+    		if (i<234 && i>9 && j<322 && j>1){
+    			Input_1[ps] = Input_1[i*CAMERA_WIDTH+j];
+    			ps++;        			
+    		}
+    	}
+    }
+    // Copy Single Channel Greyscale to 3 channel RGB: CH0-CH1-CH2 
+	// pi_ram_write(&HyperRam, (l3_buff), 									Input_1, (uint32_t) AT_INPUT_WIDTH*AT_INPUT_HEIGHT);
+	// pi_ram_write(&HyperRam, (l3_buff+AT_INPUT_WIDTH*AT_INPUT_HEIGHT), 	Input_1, (uint32_t) AT_INPUT_WIDTH*AT_INPUT_HEIGHT);
+	// pi_ram_write(&HyperRam, (l3_buff+2*AT_INPUT_WIDTH*AT_INPUT_HEIGHT), Input_1, (uint32_t) AT_INPUT_WIDTH*AT_INPUT_HEIGHT);
+	// pmsis_l2_malloc_free(Input_1, CAMERA_SIZE*sizeof(char));
+    demosaicking(Input_1, Input_3, 320, 224, 0);
+    // WriteImageToFile("../../../img.ppm", 320, 224, sizeof(uint32_t), Input_3, RGB888_IO);
+    pi_ram_write(&HyperRam, (l3_buff), Input_3, (uint32_t) AT_INPUT_SIZE);
+
 	// Dispatch task on the cluster 
 	pi_cluster_send_task_to_cl(&cluster_dev, task);
 
@@ -211,58 +263,47 @@ int body(void)
     static signed char max = -100;
     static char max_index_x = -100;
     static char max_index_y = -100;
-    for(int i=0; i<28; i++){
-        for(int j=0; j<40; j++){
-            printf("%d ",ResOut[(i*40+j)]);
-            if(max < ResOut[(i*40+j)]){
-                max = ResOut[(i*40+j)];
-                max_index_x = i;
-                max_index_y = j;
-            }
-        }
-        printf("\n");
-    }
-    printf("The largest value: %3d Index H: %3d W: %3d\n",max, max_index_x, max_index_y);
+    // for(int i=0; i<28; i++){
+    //     for(int j=0; j<40; j++){
+    //         printf("%d ",ResOut[(i*40+j)]);
+    //         if(max < ResOut[(i*40+j)]){
+    //             max = ResOut[(i*40+j)];
+    //             max_index_x = i;
+    //             max_index_y = j;
+    //         }
+    //     }
+    //     printf("\n");
+    // }
+    // printf("The largest value: %3d Index H: %3d W: %3d\n",max, max_index_x, max_index_y);
 
     max = -100;
-    max_index_x = -100;
-    max_index_y = -100;
     for(int i=0; i<28; i++){
         for(int j=0; j<40; j++){
-            printf("%d ",ResOut[1120+(i*40+j)]);
+            // printf("%d ",ResOut[1120+(i*40+j)]);
             if(max < ResOut[1120+(i*40+j)]){
                 max = ResOut[1120+(i*40+j)];
                 max_index_x = i;
                 max_index_y = j;
             }
         }
-        printf("\n");
+        // printf("\n");
     }
     printf("The largest value: %3d Index H: %3d W: %3d\n",max, max_index_x, max_index_y);
 
-    // Uncomment the following for prediction of a sequences of images
-    // unsigned char* outBuff;
-    // outBuff = (unsigned char *) AT_L2_ALLOC(0, 1120*sizeof(unsigned char));
-	// if (outBuff==0) {
-	// 	printf("Failed to allocate Memory for outBuff (%ld bytes)\n", 2*sizeof(char));
-	// 	return 1;
-	// }
-    // for(int i=0; i<28; i++){
-    //     for(int j=0; j<40; j++){
-    //         outBuff[i*40+j] = ResOut[i*40+j]+128;
-    //     }
-    // }
-    // WriteImageToFile("../../../img_depth.ppm", 40, 28, sizeof(uint8_t), outBuff, GRAY_SCALE_IO);
-    // for(int i=0; i<28; i++){
-    //     for(int j=0; j<40; j++){
-    //         outBuff[i*40+j] = ResOut[1120+ i*40+j]+128;
-    //     }
-    // }
-    // WriteImageToFile("../../../img_position.ppm", 40, 28, sizeof(uint8_t), outBuff, GRAY_SCALE_IO);
-
-    printf("Model:\t%s\n\n", __XSTR(AT_MODEL_PREFIX));
-	printf("Predicted class:\t%d\n", outclass);
-	printf("With confidence:\t%d\n", MaxPrediction);
+    if(max > -20){
+        uartData[2] = max_index_x;
+        uartData[3] = max_index_y;
+        // uartData[4] = ResOut[(max_index_x*40+max_index_y)]+128;
+        uartData[4] = max+64;
+        pi_uart_write(&uart, uartData, 5);
+        // pi_uart_write(&uart, &value, 1);
+    }
+    led_val = 1 - led_val;
+    pi_gpio_pin_write(&gpio_device, 2, led_val);
+    // printf("Model:\t%s\n\n", __XSTR(AT_MODEL_PREFIX));
+	// printf("Predicted class:\t%d\n", outclass);
+	// printf("With confidence:\t%d\n", MaxPrediction);
+    }
 
 
 	// Performance counters

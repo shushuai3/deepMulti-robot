@@ -27,7 +27,6 @@ AT_L3_ADDR = $(MODEL_PREFIX)_L3_Flash
 # QUANT_FLAG ?= -q # if quantized already
 
 IMAGE=$(CURDIR)/images/0026.ppm
-io=host
 
 MODEL_L3_EXEC=hram
 MODEL_L3_CONST=hflash
@@ -62,7 +61,7 @@ else
 	endif
 	FREQ_FC?=250
 	MODEL_L1_MEMORY=$(shell expr 60000 \- $(TOTAL_STACK_SIZE))
-	MODEL_L2_MEMORY?=300000
+	MODEL_L2_MEMORY?=200000
 	MODEL_L3_MEMORY=8000000
 endif
 

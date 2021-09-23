@@ -1,4 +1,5 @@
-DATASET_FOLDER = 'synImgs'
+# DATASET_FOLDER = 'synImgs'
+DATASET_FOLDER = 'aideck-dataset/imageStorage'
 INPUT_CHANNEL = 3 # RGB: 3, Grey: 1
 LOCA_STRIDE     = 8
 LOCA_CLASSES    = {0: "crazyflie"}

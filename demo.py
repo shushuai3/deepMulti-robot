@@ -56,7 +56,7 @@ def image_predict(image_path, model):
     # image.save(image_path[-6]+image_path[-5]+'.png')
 
 def pred_max_conf(image_path, model):
-    if cfg.DATASET_FOLDER == 'synImgs':
+    if cfg.INPUT_CHANNEL == 3:
         original_image = cv2.imread(image_path)
         original_image = cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB)
     else:
@@ -66,7 +66,7 @@ def pred_max_conf(image_path, model):
     original_image = original_image/128 - 1
     image_data = original_image[np.newaxis, ...].astype(np.float32)
     conv = model.predict(image_data)   
-    conf = tf.sigmoid(conv[0, :, :, 1])
+    conf = tf.sigmoid(conv[0, :, :, 1:2])
     xy = [np.argmax(conf)//40, np.argmax(conf)%40]
     d = tf.exp(conv[0, xy[0], xy[1], 0])
     # image = Image.open(image_path)
@@ -79,21 +79,33 @@ input_size   = [224, 320]
 input_layer  = tf.keras.layers.Input([input_size[0], input_size[1], cfg.INPUT_CHANNEL])
 feature_maps = locaNet(input_layer)
 model = tf.keras.Model(input_layer, feature_maps)
-model.load_weights("./output/locaNet")
+model.load_weights("./output-real/locaNet")
+# model.load_weights("./output-syn-dep-conf/locaNet")
 model.summary()
 
 ## Figure in the paper
-# image_predict("./dataset/synImgsMulti/0026.jpg", model)
-# image_predict("./dataset/synImgsMulti/0037.jpg", model)
+image_predict("./dataset/synImgsMulti/0026.jpg", model)
+image_predict("./dataset/synImgsMulti/0037.jpg", model)
+image_predict("./dataset/synImgsMulti/0047.jpg", model)
 image_predict("./dataset/synImgs/0837.jpg", model) # sample also in AIdeck
 # image_predict("./dataset/synImgs/0970.jpg", model)
+# image_predict("./dataset/aideck-dataset/imageStorage/imagesH2C/img00080.ppm", model)
+
+## Figure in the paper
+# 0.23 real, 0.33 syn, weight selection
+# fileNames = []
+# with open('./dataset/aideck-dataset/imageStorage/test.txt', 'r') as file:
+#     for row in file:
+#         fileNames.append(row.split()[0])
+# for file in fileNames:
+#     image_predict(file, model)
 
 ## Figure in the paper
 # lineAll = []
 # y_err = []
 # z_err = []
 # d_err = []
-# with open('dataset/synImgs/test.txt', 'r') as file:
+# with open('./dataset/aideck-dataset/imageStorage/test.txt', 'r') as file:
 #     for row in file:
 #         lineAll.append(row.split())
 # for line in lineAll:
@@ -112,14 +124,14 @@ image_predict("./dataset/synImgs/0837.jpg", model) # sample also in AIdeck
 # axes[0].set_title('2D position error in image')
 # axes[0].yaxis.grid(True)
 # axes[0].set_xticks([y+1 for y in range(len(allData))])
-# axes[0].set_ylabel('Position error in pixels')
-# axes[0].set_xticklabels([r'$y_{p}$',r'$z_{p}$'])
+# axes[0].set_ylabel('Position error in pixels', fontsize=12)
+# axes[0].set_xticklabels([r'$x_{p}$',r'$y_{p}$'], fontsize=12)
 # axes[1].violinplot([d_err], showmeans=True, showmedians=True)
 # axes[1].set_title('Depth error')
 # axes[1].yaxis.grid(True)
 # axes[1].set_xticks([y+1 for y in range(len([d_err]))])
-# axes[1].set_ylabel('Depth error in meters')
-# axes[1].set_xticklabels([r'$d$'])
+# axes[1].set_ylabel('Depth error in meters', fontsize=12)
+# axes[1].set_xticklabels([r'$d$'], fontsize=12)
 # fig.tight_layout(pad=3.0)
 # plt.show()
 
