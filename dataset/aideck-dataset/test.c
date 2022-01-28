@@ -53,9 +53,12 @@ static bool start_storing = false;
 static float decode_packet(uint8_t *src, float * r, float * p, float * x, float * y, float * z, float * d);
 static float buff_strip(uint8_t *src, uint8_t *tar);
 
+static bool IMG_END;     // check img end
+
 int test_camera()
 {
     printf("Entering main controller\n");
+    pi_time_wait_us(1000*5000);             // delay 5s for reliable initialization
     // ------ open led
     static struct pi_device gpio_device;
     // pi_pad_set_function(PI_PAD_14_A2_RF_PACTRL2, PI_PAD_14_A2_GPIO_A2_FUNC1);
@@ -200,8 +203,23 @@ int test_camera()
         for (uint32_t i=0; i<BUFF_SIZE; i++){buff[i] = 0;}
         pi_flash_read(&flash, flash_address, buff, (uint32_t) CROP_SIZE);
         flash_address += CROP_SIZE;
-        if( ((buff[0]==0xFF) && (buff[1]==0xFF) ) || (image_number > READSIZE) ){
-        // if( (buff[0]==0xFF) && (buff[1]==0xFF) ){
+
+        // If all pixels are white, indicated as the end of img sequence.
+        IMG_END = true;                        // flag 
+        for(uint32_t i=0; i<CROP_SIZE; i++)
+        {
+            if(buff[i] != 0xFF)               // if any pixel is not 0XFF, the image is valided
+            {           
+                IMG_END = false;
+                printf("detect at buff[i] = %d\n",i);
+                break;                        // break the for loop  
+            }
+        } 
+
+        if( IMG_END ||(image_number > READSIZE) )
+        {
+            // reach the end of img
+            printf("Reach the end of images\n");
             //------ write attitude and 3D pos to a txt file
             struct pi_fs_conf conf;
             pi_fs_conf_init(&conf);
