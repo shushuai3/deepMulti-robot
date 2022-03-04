@@ -79,8 +79,8 @@ input_size   = [224, 320]
 input_layer  = tf.keras.layers.Input([input_size[0], input_size[1], cfg.INPUT_CHANNEL])
 feature_maps = locaNet(input_layer)
 model = tf.keras.Model(input_layer, feature_maps)
-model.load_weights("./output-real/locaNet")
-# model.load_weights("./output-syn-dep-conf/locaNet")
+# model.load_weights("./output-real/locaNet")
+model.load_weights("./output-syn-dep-conf/locaNet")
 model.summary()
 
 ## Figure in the paper
@@ -134,6 +134,47 @@ image_predict("./dataset/synImgs/0837.jpg", model) # sample also in AIdeck
 # axes[1].set_xticklabels([r'$d$'], fontsize=12)
 # fig.tight_layout(pad=3.0)
 # plt.show()
+
+# Figure (error w.r.t distance)
+import matplotlib.pyplot as plt
+lineAll = []
+y_err = []
+z_err = []
+d_err = []
+dis = []
+with open('./dataset/synImgs/test.txt', 'r') as file:
+    for row in file:
+        lineAll.append(row.split())
+for line in lineAll:
+    imgPath = line[0]
+    y_p = float(line[2].split(',')[0])
+    z_p = float(line[2].split(',')[1])
+    d   = float(line[2].split(',')[2])/1000.0
+    predict = pred_max_conf(imgPath, model)
+    y_err.append(y_p - predict[0])
+    z_err.append(z_p - predict[1])
+    d_err.append(d   - predict[2])
+    dis.append(d)
+data = np.array((dis, y_err, z_err, d_err))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+x = data[0, :]
+y = data[1, :]
+ax1.scatter(x, y, c='tab:blue', label='pixError x', alpha=0.3, edgecolors='none')
+y = data[2, :]
+ax1.scatter(x, y, c='tab:orange', label='pixError y', alpha=0.3, edgecolors='none')
+y = data[3, :]
+ax2.scatter(x, y, c='tab:green', label='depthError', alpha=0.3, edgecolors='none')
+ax1.legend()
+ax1.grid(True)
+ax1.set_title('Position error in image', fontsize=12)
+ax1.set_ylabel('Error (Pixels)', fontsize=12)
+ax1.set_xlabel('Distance (m)', fontsize=12)
+ax2.legend()
+ax2.grid(True)
+ax2.set_title('Depth error')
+ax2.set_ylabel('Error (m)', fontsize=12)
+ax2.set_xlabel('Distance (m)', fontsize=12)
+plt.show()
 
 # ## Figure position error
 # from numpy.linalg import inv
